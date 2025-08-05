@@ -1,5 +1,6 @@
 package com.example.music_store.config;
 
+import com.example.music_store.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
