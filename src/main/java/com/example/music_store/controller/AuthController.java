@@ -3,6 +3,7 @@ package com.example.music_store.controller;
 import com.example.music_store.dto.LoginRequest;
 import com.example.music_store.dto.RegisterRequest;
 import com.example.music_store.entity.User;
+import com.example.music_store.repository.UserRepository;
 import com.example.music_store.security.JwtService;
 import com.example.music_store.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +27,13 @@ public class AuthController {
     private final UserService userService;
     private final AuthenticationManager authManager;
     private final JwtService jwtService;
+    private final UserRepository userRepository;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-        if (userService.findByEmail(request.getEmail()).isPresent()) {
+        if (userRepository.existsByEmail(request.getEmail())) {
             return ResponseEntity.badRequest().body("Email already exists");
-        }
+    }
         User user = User.builder()
                 .username(request.getUsername())
                 .email(request.getEmail())
