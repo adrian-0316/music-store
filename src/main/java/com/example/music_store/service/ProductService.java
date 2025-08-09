@@ -43,11 +43,14 @@ public class ProductService {
     public ProductResponse update(Long id, ProductRequest request) {
         Product product = productRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Product not found"));
+
         product.setName(request.getName());
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setImageUrl(request.getImageUrl());
         product.setCategory(request.getCategory());
+
+        product = productRepository.save(product);
 
         return toDto(product);
     }
