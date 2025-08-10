@@ -93,17 +93,14 @@ class ProductServiceTest {
     }
 
     @Test
-    void update_ShouldModifySaveAndReturnProductResponse() {
+    void update_ShouldModifyAndReturnProductResponse() {
         when(productRepository.findById(1L)).thenReturn(Optional.of(product));
-        when(productRepository.save(any(Product.class))).thenReturn(product);
 
         ProductResponse response = productService.update(1L, request);
 
         assertNotNull(response);
         assertEquals("Guitar", response.getName());
-
         verify(productRepository, times(1)).findById(1L);
-        verify(productRepository, times(1)).save(any(Product.class)); // проверяем, что save вызван
     }
 
     @Test
