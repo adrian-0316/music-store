@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -25,13 +26,14 @@ public class OrderService {
         User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        Order order = Order.builder()
+        PurchaseOrder order = PurchaseOrder.builder()
                 .user(user)
                 .createdAt(LocalDateTime.now())
                 .status(OrderStatus.PROCESSING)
+                .totalPrice(BigDecimal.ZERO)
                 .build();
 
-        double totalPrice = 0.0;
+        BigDecimal totalPrice = BigDecimal.ZERO;
 
         for (OrderItemRequest itemRequest : request.getItems()) {
             Product product = productRepository.findById(itemRequest.getProductId())
@@ -44,12 +46,16 @@ public class OrderService {
                     .price(product.getPrice())
                     .build();
 
-            totalPrice += product.getPrice() * itemRequest.getQuantity();
+            BigDecimal itemTotal = product.getPrice()
+                    .multiply(BigDecimal.valueOf(itemRequest.getQuantity()));
+
+            totalPrice = totalPrice.add(itemTotal);
+
             order.getItems().add(orderItem);
         }
 
         order.setTotalPrice(totalPrice);
-        Order savedOrder = orderRepository.save(order);
+        PurchaseOrder savedOrder = orderRepository.save(order);
 
         return toOrderResponse(savedOrder);
     }
@@ -61,12 +67,12 @@ public class OrderService {
     }
 
     public OrderResponse getOrderById(Long id) {
-        Order order = orderRepository.findById(id)
+        PurchaseOrder order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
         return toOrderResponse(order);
     }
 
-    private OrderResponse toOrderResponse(Order order) {
+    private OrderResponse toOrderResponse(PurchaseOrder order) {
         return OrderResponse.builder()
                 .id(order.getId())
                 .createdAt(order.getCreatedAt())

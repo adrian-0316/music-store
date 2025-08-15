@@ -4,6 +4,7 @@ import com.example.music_store.entity.OrderStatus;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -13,7 +14,7 @@ public class OrderResponse {
     private Long id;
     private LocalDateTime createdAt;
     private Long userId;
-    private double totalPrice;
+    private BigDecimal totalPrice;
     private OrderStatus status;
     private List<OrderItemDto> items;
 }
