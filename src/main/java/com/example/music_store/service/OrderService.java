@@ -1,11 +1,13 @@
 package com.example.music_store.service;
 
+import com.example.music_store.dto.*;
 import com.example.music_store.entity.*;
 import com.example.music_store.repository.OrderRepository;
 import com.example.music_store.repository.ProductRepository;
 import com.example.music_store.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,40 +17,70 @@ import java.util.List;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-    private final ProductRepository productRepository;
     private final UserRepository userRepository;
+    private final ProductRepository productRepository;
 
-    public Order createOrder(Long userId, List<OrderItem> items) {
-        User user = userRepository.findById(userId)
+    @Transactional
+    public OrderResponse createOrder(OrderRequest request) {
+        User user = userRepository.findById(request.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found"));
-
-        double total = items.stream()
-                .mapToDouble(i -> i.getPrice() * i.getQuantity())
-                .sum();
 
         Order order = Order.builder()
                 .user(user)
-                .items(items)
-                .totalPrice(total)
-                .status(OrderStatus.NEW)
                 .createdAt(LocalDateTime.now())
+                .status(OrderStatus.PROCESSING)
                 .build();
 
-        items.forEach(i -> i.setOrder(order));
+        double totalPrice = 0.0;
 
-        return orderRepository.save(order);
+        for (OrderItemRequest itemRequest : request.getItems()) {
+            Product product = productRepository.findById(itemRequest.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            OrderItem orderItem = OrderItem.builder()
+                    .order(order)
+                    .product(product)
+                    .quantity(itemRequest.getQuantity())
+                    .price(product.getPrice())
+                    .build();
+
+            totalPrice += product.getPrice() * itemRequest.getQuantity();
+            order.getItems().add(orderItem);
+        }
+
+        order.setTotalPrice(totalPrice);
+        Order savedOrder = orderRepository.save(order);
+
+        return toOrderResponse(savedOrder);
     }
 
-    public List<Order> getUserOrders(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        return orderRepository.findByUser(user);
+    public List<OrderResponse> getAllOrders() {
+        return orderRepository.findAll().stream()
+                .map(this::toOrderResponse)
+                .toList();
     }
 
-    public Order updateStatus(Long orderId, OrderStatus status) {
-        Order order = orderRepository.findById(orderId)
+    public OrderResponse getOrderById(Long id) {
+        Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
-        order.setStatus(status);
-        return orderRepository.save(order);
+        return toOrderResponse(order);
+    }
+
+    private OrderResponse toOrderResponse(Order order) {
+        return OrderResponse.builder()
+                .id(order.getId())
+                .createdAt(order.getCreatedAt())
+                .userId(order.getUser().getId())
+                .totalPrice(order.getTotalPrice())
+                .status(order.getStatus())
+                .items(order.getItems().stream()
+                        .map(item -> OrderItemDto.builder()
+                                .productId(item.getProduct().getId())
+                                .productName(item.getProduct().getName())
+                                .quantity(item.getQuantity())
+                                .price(item.getPrice())
+                                .build())
+                        .toList())
+                .build();
     }
 }
