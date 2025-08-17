@@ -2,6 +2,7 @@ package com.example.music_store.ui;
 
 import com.example.music_store.dto.ProductResponse;
 import com.example.music_store.service.ProductService;
+import com.vaadin.flow.component.AttachEvent;
 import com.vaadin.flow.component.grid.Grid;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
