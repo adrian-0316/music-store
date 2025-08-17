@@ -2,40 +2,45 @@ package com.example.music_store.ui;
 
 import com.example.music_store.dto.ProductResponse;
 import com.example.music_store.service.ProductService;
-import com.vaadin.flow.component.AttachEvent;
+import com.vaadin.flow.component.button.Button;
 import com.vaadin.flow.component.grid.Grid;
+import com.vaadin.flow.component.html.H1;
 import com.vaadin.flow.component.orderedlayout.VerticalLayout;
 import com.vaadin.flow.router.Route;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
-
-@Component
-@Route("products") // URL: http://localhost:8080/products
-@RequiredArgsConstructor
+@Route("products")  // UI будет доступен по http://localhost:8080/products
+@Component          // важно: теперь Spring будет управлять этим классом
 public class ProductView extends VerticalLayout {
 
     private final ProductService productService;
 
-    private final Grid<ProductResponse> grid = new Grid<>(ProductResponse.class);
+    @Autowired
+    public ProductView(ProductService productService) {
+        this.productService = productService;
 
-    public ProductView() {
-        setSizeFull();
+        add(new H1("Музыкальные инструменты"));
+
+        // Таблица продуктов
+        Grid<ProductResponse> grid = new Grid<>(ProductResponse.class, false);
+        grid.addColumn(ProductResponse::getName).setHeader("Название");
+        grid.addColumn(ProductResponse::getCategory).setHeader("Категория");
+        grid.addColumn(ProductResponse::getPrice).setHeader("Цена");
+        grid.addColumn(ProductResponse::getDescription).setHeader("Описание");
+
+        //"В корзину"
+        grid.addComponentColumn(product ->
+                new Button("Добавить в корзину", click -> {
+                    // Здесь пока просто лог
+                    System.out.println("Добавлен в корзину: " + product.getName());
+                    // Позже свяжем с CartService
+                })
+        );
+
+        //Данные
+        grid.setItems(productService.findAll());
+
         add(grid);
-    }
-
-    // Vaadin вызывает этот метод при переходе на /products
-    @Override
-    protected void onAttach(AttachEvent attachEvent) {
-        List<ProductResponse> products = productService.findAll();
-        grid.setItems(products);
-
-        grid.setColumns("id", "name", "description", "price", "category");
-        grid.getColumnByKey("id").setHeader("ID");
-        grid.getColumnByKey("name").setHeader("Название");
-        grid.getColumnByKey("description").setHeader("Описание");
-        grid.getColumnByKey("price").setHeader("Цена");
-        grid.getColumnByKey("category").setHeader("Категория");
     }
 }
