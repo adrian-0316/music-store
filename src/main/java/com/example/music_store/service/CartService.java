@@ -15,6 +15,8 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 
+import static java.util.stream.Collectors.toList;
+
 @Service
 @RequiredArgsConstructor
 public class CartService {
@@ -39,6 +41,29 @@ public class CartService {
                 .product(product)
                 .quantity(request.getQuantity())
                 .price(product.getPrice().multiply(BigDecimal.valueOf(request.getQuantity())))
+                .build();
+        cart.getItems().add(item);
+        cart.setTotalPrice(cart.getItems().stream()
+                .map(CartItem::getPrice)
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+
+        cartItemRepository.save(item);
+        cartRepository.save(cart);
+
+        return toDto(cart);
+    }
+    private CartResponse toDto(Cart cart) {
+        return CartResponse.builder()
+                .id(cart.getId())
+                .totalPrice(cart.getTotalPrice())
+                .items(cart.getItems().stream().map(item ->
+                        CartResponse.CartItemDto.builder()
+                                .productId(item.getProduct().getId())
+                                .name(item.getProduct().getName())
+                                .quantity(item.getQuantity())
+                                .price(item.getPrice())
+                                .build()
+                ).toList())
                 .build();
     }
 }
