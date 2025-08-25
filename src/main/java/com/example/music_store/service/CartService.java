@@ -32,6 +32,7 @@ public class CartService {
             Cart newCart = new Cart();
             newCart.setUser(user);
             newCart.setTotalPrice(BigDecimal.ZERO);
+            
             return cartRepository.save(newCart);
         });
         Product product = productRepository.findById(request.getProductId()).
