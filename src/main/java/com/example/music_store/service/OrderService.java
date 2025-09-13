@@ -12,8 +12,9 @@ import com.example.music_store.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.stream.Collectors;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -34,32 +35,35 @@ public class OrderService {
             throw new RuntimeException("Cart is empty");
         }
 
-        // Создаем заказ
-        Order order = new Order();
-        order.setUser(user);
-        order.setTotalPrice(cart.getTotalPrice());
-        order.setCreatedAt(LocalDateTime.now());
+        // создаём заказ (без items) и сохраняем — получаем final-ссылку
+        Order order = Order.builder()
+                .user(user)
+                .totalPrice(cart.getTotalPrice())
+                .createdAt(LocalDateTime.now())
+                .build();
 
-        // Переносим позиции из корзины в заказ
-        order.setItems(
-                cart.getItems().stream().map(cartItem -> {
-                    OrderItem orderItem = new OrderItem();
-                    orderItem.setOrder(order);
-                    orderItem.setProduct(cartItem.getProduct());
-                    orderItem.setQuantity(cartItem.getQuantity());
-                    orderItem.setPrice(cartItem.getPrice());
-                    return orderItem;
-                }).collect(Collectors.toList())
-        );
+        final Order savedOrder = orderRepository.save(order); // final!
 
-        order = orderRepository.save(order);
+        // теперь можно безопасно использовать savedOrder внутри лямбды
+        List<OrderItem> orderItems = cart.getItems().stream().map(cartItem -> {
+            OrderItem orderItem = OrderItem.builder()
+                    .order(savedOrder)               // используем savedOrder (final)
+                    .product(cartItem.getProduct())
+                    .quantity(cartItem.getQuantity())
+                    .price(cartItem.getPrice())
+                    .build();
+            return orderItem;
+        }).toList();
+
+        savedOrder.setItems(orderItems);
+        orderRepository.save(savedOrder); // сохраняем с заполненными items
 
         // очищаем корзину
         cart.getItems().clear();
-        cart.setTotalPrice(null);
+        cart.setTotalPrice(BigDecimal.ZERO);
         cartRepository.save(cart);
 
-        return toDto(order);
+        return toDto(savedOrder);
     }
 
     private OrderResponse toDto(Order order) {
